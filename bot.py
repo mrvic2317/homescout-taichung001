@@ -1,6 +1,13 @@
 """VicBot Discord bot implementation."""
 from __future__ import annotations
 
+# --- .env 載入（緊接在 future import 之後）---
+from dotenv import load_dotenv
+import os
+load_dotenv()
+print("DISCORD_TOKEN loaded?", bool(os.getenv("DISCORD_TOKEN")))
+# ---------------------------------------------
+
 import asyncio
 import logging
 from datetime import datetime, timedelta
@@ -226,7 +233,7 @@ async def object_search(
     )
     if keyword:
         keyword_lower = keyword.lower()
-        listings = [listing for listing in listings if keyword_lower in listing.address.lower()]
+        listings = [listing for listing in listings if listing.address and keyword_lower in listing.address.lower()]
 
     if not listings:
         await ctx.reply("目前查無符合條件的物件。")
