@@ -11,3 +11,8 @@ vicbot.db
 # secrets
 .env
 .env.*
+
+# data files (ignore large CSV, but keep example)
+data/taichung_prices_*.csv
+data/*_backup.csv
+!data/taichung_prices.csv
