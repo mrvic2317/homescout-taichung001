@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="zh-TW">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Theme Preview — VicBot (Before / After)</title>
+  <style>
+    /* minimal preview styles and components using CSS variables for each theme */
+    :root{font-family: 'Noto Sans TC', system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', Arial}
+    body{margin:0;padding:24px;background:#0b0f12;color:#fff}
+    .wrap{display:flex;gap:20px;align-items:flex-start}
+    .col{flex:1;min-width:320px}
+    .panel{padding:18px;border-radius:12px}
+
+    /* OLD theme (小紅書風格) */
+    .old{--primary:#FF2442;--primary-light:#FF6B88;--secondary:#FFF5F7;--text:#333;--card-bg:#ffffff;--card-shadow:0 4px 12px rgba(255,36,66,0.12)}
+    .old .panel{background:linear-gradient(180deg,var(--secondary),#fff);color:var(--text);box-shadow:var(--card-shadow)}
+    .old .navbar{background:var(--primary);color:#fff;padding:12px;border-radius:8px}
+    .old .btn{background:linear-gradient(135deg,var(--primary),var(--primary-light));color:#fff;padding:10px 16px;border-radius:8px;border:0}
+    .old .card{background:#fff;padding:14px;border-radius:10px;border:1px solid #f0f0f0}
+
+    /* NEW theme (深酒紅) */
+    .new{--primary:#7A1128;--primary-light:#B23A4A;--secondary:#0F1720;--text:#EFEFEF;--card-bg:rgba(20,24,30,0.8);--card-shadow:0 6px 18px rgba(0,0,0,0.6)}
+    .new .panel{background:linear-gradient(180deg,var(--secondary),#061018);color:var(--text);box-shadow:var(--card-shadow)}
+    .new .navbar{background:linear-gradient(90deg,var(--primary),var(--primary-light));color:#fff;padding:12px;border-radius:8px}
+    .new .btn{background:linear-gradient(135deg,#5C0F20,#A22B3C);color:#fff;padding:10px 16px;border-radius:8px;border:0}
+    .new .card{background:var(--card-bg);padding:14px;border-radius:10px;border:1px solid rgba(255,255,255,0.04)}
+
+    h3{margin:0 0 12px 0}
+    .sample-wrap{display:flex;gap:12px;flex-direction:column}
+    .swatches{display:flex;gap:8px;margin-top:12px}
+    .sw{width:44px;height:44px;border-radius:6px;border:1px solid rgba(0,0,0,0.08)}
+    .muted{font-size:0.9rem;color:rgba(255,255,255,0.6);margin-top:8px}
+  </style>
+</head>
+<body>
+  <h1 style="color:#fff">VicBot Theme Preview — Before / After</h1>
+  <p class="muted">左：原本的小紅書風格（淺色）；右：套用的新深色酒紅風格</p>
+
+  <div class="wrap">
+    <div class="col old">
+      <div class="panel">
+        <div class="navbar">VicBot 小紅書風格</div>
+        <div style="height:12px"></div>
+        <h3>統計卡片</h3>
+        <div class="card">
+          <strong>監控條件</strong>
+          <div style="font-size:24px;margin-top:8px;color:#FF2442">12</div>
+        </div>
+
+        <div style="height:12px"></div>
+        <h3>按鈕 / 表單</h3>
+        <div class="sample-wrap">
+          <button class="btn">主要按鈕</button>
+          <input class="input" placeholder="輸入框示例" style="padding:10px;border-radius:8px;border:1px solid #f0f0f0">
+        </div>
+
+        <div class="swatches">
+          <div style="background:#FF2442" class="sw"></div>
+          <div style="background:#FF6B88" class="sw"></div>
+          <div style="background:#FFF5F7;border:1px solid #eee" class="sw"></div>
+          <div style="background:#333" class="sw"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col new">
+      <div class="panel">
+        <div class="navbar">VicBot 深酒紅風格</div>
+        <div style="height:12px"></div>
+        <h3>統計卡片</h3>
+        <div class="card">
+          <strong>監控條件</strong>
+          <div style="font-size:24px;margin-top:8px;color:var(--primary)">12</div>
+        </div>
+
+        <div style="height:12px"></div>
+        <h3>按鈕 / 表單</h3>
+        <div class="sample-wrap">
+          <button class="btn">主要按鈕</button>
+          <input class="input" placeholder="輸入框示例" style="padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:rgba(255,255,255,0.02);color:var(--text)">
+        </div>
+
+        <div class="swatches">
+          <div style="background:#7A1128" class="sw"></div>
+          <div style="background:#B23A4A" class="sw"></div>
+          <div style="background:#0F1720;border:1px solid rgba(255,255,255,0.04)" class="sw"></div>
+          <div style="background:#EFEFEF" class="sw"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <p class="muted">檔案位置：<code>/frontend/static/theme_preview.html</code></p>
+  <p class="muted">建議用瀏覽器開啟此檔或啟動簡單伺服器來預覽（下方會有說明）。</p>
+</body>
+</html>
