@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VicBot 房仲管理系統</title>
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link href="/static/css/style.css" rel="stylesheet">
+</head>
+<body>
+    <!-- 登入頁面 -->
+    <div id="login-page" class="container mt-5">
+        <div class="row justify-content-center">
+            <div class="col-md-6">
+                <div class="card shadow">
+                    <div class="card-header bg-primary text-white text-center">
+                        <h3><i class="fas fa-home"></i> VicBot 房仲管理系統</h3>
+                    </div>
+                    <div class="card-body">
+                        <form id="login-form">
+                            <div class="mb-3">
+                                <label for="discord-id" class="form-label">Discord ID</label>
+                                <input type="number" class="form-control" id="discord-id" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="password" class="form-label">密碼</label>
+                                <input type="password" class="form-control" id="password" required>
+                            </div>
+                            <button type="submit" class="btn btn-primary w-100">登入</button>
+                        </form>
+                        <div id="login-error" class="alert alert-danger mt-3 d-none"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 主應用頁面 -->
+    <div id="app-page" class="d-none">
+        <!-- 導航欄 -->
+        <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+            <div class="container-fluid">
+                <a class="navbar-brand" href="#"><i class="fas fa-home"></i> VicBot</a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="navbarNav">
+                    <ul class="navbar-nav me-auto">
+                        <li class="nav-item">
+                            <a class="nav-link" href="#" data-page="dashboard"><i class="fas fa-tachometer-alt"></i> 儀表板</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#" data-page="monitoring"><i class="fas fa-eye"></i> 監控</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#" data-page="cases"><i class="fas fa-briefcase"></i> 案件</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#" data-page="clients"><i class="fas fa-users"></i> 客戶</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#" data-page="viewings"><i class="fas fa-calendar"></i> 看屋</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#" data-page="price"><i class="fas fa-chart-line"></i> 房價</a>
+                        </li>
+                    </ul>
+                    <span class="navbar-text me-3" id="user-info"></span>
+                    <button class="btn btn-outline-light btn-sm" id="logout-btn">登出</button>
+                </div>
+            </div>
+        </nav>
+
+        <!-- 內容區域 -->
+        <div class="container-fluid mt-4">
+            <!-- 儀表板 -->
+            <div id="dashboard-page" class="content-page">
+                <h2>儀表板</h2>
+                <div class="row mt-4">
+                    <div class="col-md-3">
+                        <div class="card text-white bg-primary mb-3">
+                            <div class="card-body">
+                                <h5 class="card-title"><i class="fas fa-eye"></i> 監控條件</h5>
+                                <h2 id="stat-monitoring">0</h2>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card text-white bg-success mb-3">
+                            <div class="card-body">
+                                <h5 class="card-title"><i class="fas fa-briefcase"></i> 進行中案件</h5>
+                                <h2 id="stat-cases">0</h2>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card text-white bg-info mb-3">
+                            <div class="card-body">
+                                <h5 class="card-title"><i class="fas fa-users"></i> 客戶數量</h5>
+                                <h2 id="stat-clients">0</h2>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card text-white bg-warning mb-3">
+                            <div class="card-body">
+                                <h5 class="card-title"><i class="fas fa-calendar"></i> 即將看屋</h5>
+                                <h2 id="stat-viewings">0</h2>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 監控頁面 -->
+            <div id="monitoring-page" class="content-page d-none">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h2>監控管理</h2>
+                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addMonitoringModal">
+                        <i class="fas fa-plus"></i> 新增監控
+                    </button>
+                </div>
+                <div id="monitoring-list"></div>
+            </div>
+
+            <!-- 案件頁面 -->
+            <div id="cases-page" class="content-page d-none">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h2>案件管理</h2>
+                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addCaseModal">
+                        <i class="fas fa-plus"></i> 新增案件
+                    </button>
+                </div>
+                <div id="cases-list"></div>
+            </div>
+
+            <!-- 客戶頁面 -->
+            <div id="clients-page" class="content-page d-none">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h2>客戶管理</h2>
+                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addClientModal">
+                        <i class="fas fa-plus"></i> 新增客戶
+                    </button>
+                </div>
+                <div id="clients-list"></div>
+            </div>
+
+            <!-- 看屋頁面 -->
+            <div id="viewings-page" class="content-page d-none">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h2>看屋排程</h2>
+                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addViewingModal">
+                        <i class="fas fa-plus"></i> 新增排程
+                    </button>
+                </div>
+                <div id="viewings-list"></div>
+            </div>
+
+            <!-- 房價查詢頁面 -->
+            <div id="price-page" class="content-page d-none">
+                <h2>房價查詢</h2>
+                <div class="card mt-3">
+                    <div class="card-body">
+                        <form id="price-query-form" class="row g-3">
+                            <div class="col-md-8">
+                                <input type="text" class="form-control" id="price-area" placeholder="請輸入區域（例：北屯區、西屯區文心路）" required>
+                            </div>
+                            <div class="col-md-4">
+                                <button type="submit" class="btn btn-primary w-100">
+                                    <i class="fas fa-search"></i> 查詢
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                <div id="price-result" class="mt-3"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 各種 Modal（新增/編輯表單）-->
+    <!-- 新增監控 Modal -->
+    <div class="modal fade" id="addMonitoringModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">新增監控條件</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="add-monitoring-form">
+                        <div class="mb-3">
+                            <label class="form-label">區域</label>
+                            <input type="text" class="form-control" name="area" required>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">最低價格（萬）</label>
+                                <input type="number" class="form-control" name="price_min">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">最高價格（萬）</label>
+                                <input type="number" class="form-control" name="price_max">
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">最小坪數</label>
+                                <input type="number" step="0.1" class="form-control" name="size_min">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">最大坪數</label>
+                                <input type="number" step="0.1" class="form-control" name="size_max">
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">新增</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 新增案件 Modal -->
+    <div class="modal fade" id="addCaseModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">新增案件</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="add-case-form">
+                        <div class="mb-3">
+                            <label class="form-label">標題</label>
+                            <input type="text" class="form-control" name="title" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">區域</label>
+                            <input type="text" class="form-control" name="area">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">價格（萬）</label>
+                            <input type="number" class="form-control" name="price">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">狀態</label>
+                            <select class="form-control" name="status">
+                                <option value="跟進中">跟進中</option>
+                                <option value="已成交">已成交</option>
+                                <option value="已結案">已結案</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">備註</label>
+                            <textarea class="form-control" name="notes" rows="3"></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">新增</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 新增客戶 Modal -->
+    <div class="modal fade" id="addClientModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">新增客戶</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="add-client-form">
+                        <div class="mb-3">
+                            <label class="form-label">姓名</label>
+                            <input type="text" class="form-control" name="name" required>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">最低預算（萬）</label>
+                                <input type="number" class="form-control" name="budget_min">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">最高預算（萬）</label>
+                                <input type="number" class="form-control" name="budget_max">
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">偏好區域</label>
+                            <input type="text" class="form-control" name="preferred_areas">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">需求描述</label>
+                            <textarea class="form-control" name="description" rows="3"></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">新增</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 新增看屋 Modal -->
+    <div class="modal fade" id="addViewingModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">新增看屋排程</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="add-viewing-form">
+                        <div class="mb-3">
+                            <label class="form-label">預定時間</label>
+                            <input type="datetime-local" class="form-control" name="scheduled_at" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">客戶</label>
+                            <input type="text" class="form-control" name="client" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">物件</label>
+                            <input type="text" class="form-control" name="property" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">指派業務</label>
+                            <input type="text" class="form-control" name="agent">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">聯絡方式</label>
+                            <input type="text" class="form-control" name="contact">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">備註</label>
+                            <textarea class="form-control" name="note" rows="2"></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">相關連結</label>
+                            <input type="url" class="form-control" name="link">
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">新增</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Custom JS -->
+    <script src="/static/js/app.js"></script>
+</body>
+</html>

@@ -306,13 +306,21 @@ async def load_csv_data(csv_path: str = "data/taichung_prices.csv", auto_downloa
         await asyncio.sleep(0)  # 讓出控制權
 
         data = []
-        with open(csv_file, "r", encoding="utf-8") as f:
+        with open(csv_file, "r", encoding="utf-8-sig") as f:
             reader = csv.DictReader(f)
+
+            # 清理欄位名稱，移除 BOM 和多餘空白
+            if reader.fieldnames:
+                reader.fieldnames = [
+                    field.replace('\ufeff', '').strip() if field else field
+                    for field in reader.fieldnames
+                ]
 
             # 驗證必要欄位
             required_fields = ["鄉鎮市區", "交易年月日", "總價元", "建物移轉總面積平方公尺", "單價元平方公尺"]
             if not all(field in reader.fieldnames for field in required_fields):
                 missing = [f for f in required_fields if f not in reader.fieldnames]
+                logger.error(f"CSV 欄位名稱：{reader.fieldnames}")
                 raise ValueError(f"CSV 檔案缺少必要欄位：{', '.join(missing)}")
 
             # 讀取所有資料

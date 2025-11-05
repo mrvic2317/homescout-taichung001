@@ -1,7 +1,19 @@
+# Discord Bot 依賴
 discord.py>=2.4,<3.0
 aiosqlite>=0.19
 python-dateutil>=2.8
 apscheduler>=3.10
 pytz>=2023.3
-
 python-dotenv>=1.0.0
+
+# Web API 依賴
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+python-jose[cryptography]>=3.3.0
+passlib[bcrypt]>=1.7.4
+pydantic>=2.0.0
+jinja2>=3.1.0
+
+# 數據處理（房價查詢功能）
+pandas>=2.0.0
+requests>=2.31.0

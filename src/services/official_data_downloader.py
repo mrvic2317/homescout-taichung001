@@ -373,23 +373,54 @@ class OfficialDataDownloader:
 
                 logger.info(f"CSV 欄位 | fields={fieldnames}")
 
-                # 尋找「縣市」或「鄉鎮市區」欄位
-                city_field = None
-                for field in fieldnames:
-                    if "縣市" in field or "鄉鎮市區" in field:
-                        city_field = field
-                        break
+                # 尋找地址欄位（門牌欄位包含完整地址，含縣市名）
+                address_field = None
+                district_field = None
 
-                if not city_field:
-                    logger.error("找不到縣市欄位")
+                for field in fieldnames:
+                    # 優先尋找門牌/地址欄位（含完整地址）
+                    if "門牌" in field or "土地位置" in field or "地址" in field:
+                        address_field = field
+                    # 備用：鄉鎮市區欄位
+                    elif "鄉鎮市區" in field or "縣市" in field:
+                        district_field = field
+
+                if not address_field and not district_field:
+                    logger.error("找不到地址或縣市欄位")
                     return False, 0
+
+                logger.info(
+                    f"過濾欄位 | address_field={address_field} | district_field={district_field}"
+                )
+
+                # 台中市所有行政區列表（備用方案）
+                taichung_districts = {
+                    "中區", "東區", "南區", "西區", "北區",
+                    "北屯區", "西屯區", "南屯區", "太平區", "大里區",
+                    "霧峰區", "烏日區", "豐原區", "后里區", "石岡區",
+                    "東勢區", "和平區", "新社區", "潭子區", "大雅區",
+                    "神岡區", "大肚區", "沙鹿區", "龍井區", "梧棲區",
+                    "清水區", "大甲區", "外埔區", "大安區"
+                }
 
                 # 過濾台中市資料
                 taichung_rows = []
                 for row in reader:
-                    city = row.get(city_field, "")
-                    # 檢查是否包含「台中」或「臺中」
-                    if "台中" in city or "臺中" in city:
+                    is_taichung = False
+
+                    # 方法 1：檢查門牌欄位是否包含「台中市」或「臺中市」
+                    if address_field:
+                        address = row.get(address_field, "")
+                        if "台中市" in address or "臺中市" in address:
+                            is_taichung = True
+
+                    # 方法 2：備用 - 檢查鄉鎮市區欄位是否為台中市的區
+                    if not is_taichung and district_field:
+                        district = row.get(district_field, "")
+                        if district in taichung_districts:
+                            is_taichung = True
+
+                    if is_taichung:
                         taichung_rows.append(row)
 
             logger.info(f"過濾完成 | 台中市筆數={len(taichung_rows)}")
@@ -409,6 +440,127 @@ class OfficialDataDownloader:
 
         except Exception as e:
             logger.error(f"過濾資料失敗 | error={e}", exc_info=True)
+            return False, 0
+
+    def filter_and_merge_taichung_data(
+        self, input_paths: List[Path], output_path: Path
+    ) -> Tuple[bool, int]:
+        """
+        從多個 CSV 檔案過濾並合併台中市資料。
+
+        Args:
+            input_paths: 輸入檔案列表（全國資料）
+            output_path: 輸出檔案（合併的台中市資料）
+
+        Returns:
+            (成功, 總筆數)
+        """
+        try:
+            all_taichung_rows = []
+            common_fieldnames = None
+            total_processed = 0
+
+            logger.info(f"開始處理 {len(input_paths)} 個 CSV 檔案")
+
+            # 台中市所有行政區列表
+            taichung_districts = {
+                "中區", "東區", "南區", "西區", "北區",
+                "北屯區", "西屯區", "南屯區", "太平區", "大里區",
+                "霧峰區", "烏日區", "豐原區", "后里區", "石岡區",
+                "東勢區", "和平區", "新社區", "潭子區", "大雅區",
+                "神岡區", "大肚區", "沙鹿區", "龍井區", "梧棲區",
+                "清水區", "大甲區", "外埔區", "大安區"
+            }
+
+            for idx, input_path in enumerate(input_paths, 1):
+                try:
+                    # 檢測編碼
+                    encoding = self.detect_encoding(input_path)
+
+                    logger.info(f"[{idx}/{len(input_paths)}] 處理 {input_path.name} | encoding={encoding}")
+
+                    # 讀取 CSV
+                    with open(input_path, "r", encoding=encoding) as f_in:
+                        reader = csv.DictReader(f_in)
+                        fieldnames = reader.fieldnames
+
+                        if not fieldnames:
+                            logger.warning(f"[{idx}/{len(input_paths)}] CSV 無欄位名稱，跳過")
+                            continue
+
+                        # 設定統一的欄位名稱（使用第一個有效檔案的欄位）
+                        if common_fieldnames is None:
+                            common_fieldnames = fieldnames
+                            logger.info(f"使用欄位 | fields={fieldnames}")
+
+                        # 尋找地址欄位
+                        address_field = None
+                        district_field = None
+
+                        for field in fieldnames:
+                            if "門牌" in field or "土地位置" in field or "地址" in field:
+                                address_field = field
+                            elif "鄉鎮市區" in field or "縣市" in field:
+                                district_field = field
+
+                        if not address_field and not district_field:
+                            logger.warning(f"[{idx}/{len(input_paths)}] 找不到地址欄位，跳過")
+                            continue
+
+                        # 過濾台中市資料
+                        file_taichung_count = 0
+                        for row in reader:
+                            total_processed += 1
+                            is_taichung = False
+
+                            # 方法 1：檢查門牌欄位是否包含「台中市」或「臺中市」
+                            if address_field:
+                                address = row.get(address_field, "")
+                                if "台中市" in address or "臺中市" in address:
+                                    is_taichung = True
+
+                            # 方法 2：備用 - 檢查鄉鎮市區欄位
+                            if not is_taichung and district_field:
+                                district = row.get(district_field, "")
+                                if district in taichung_districts:
+                                    is_taichung = True
+
+                            if is_taichung:
+                                # 確保所有欄位都存在（補齊缺失的欄位）
+                                if fieldnames != common_fieldnames:
+                                    normalized_row = {field: row.get(field, "") for field in common_fieldnames}
+                                    all_taichung_rows.append(normalized_row)
+                                else:
+                                    all_taichung_rows.append(row)
+                                file_taichung_count += 1
+
+                    logger.info(
+                        f"[{idx}/{len(input_paths)}] 完成 | 台中市筆數={file_taichung_count}"
+                    )
+
+                except Exception as e:
+                    logger.warning(f"[{idx}/{len(input_paths)}] 處理失敗 | file={input_path.name} | error={e}")
+                    continue
+
+            logger.info(
+                f"所有檔案處理完成 | 總處理筆數={total_processed} | 台中市筆數={len(all_taichung_rows)}"
+            )
+
+            # 寫入合併結果
+            if all_taichung_rows and common_fieldnames:
+                with open(output_path, "w", encoding="utf-8", newline="") as f_out:
+                    writer = csv.DictWriter(f_out, fieldnames=common_fieldnames)
+                    writer.writeheader()
+                    writer.writerows(all_taichung_rows)
+
+                logger.info(f"✅ 台中市資料已合併保存 | path={output_path} | rows={len(all_taichung_rows)}")
+                return True, len(all_taichung_rows)
+            else:
+                logger.warning("過濾結果為空")
+                return False, 0
+
+        except Exception as e:
+            logger.error(f"合併資料失敗 | error={e}", exc_info=True)
             return False, 0
 
     def backup_old_data(self) -> None:
@@ -471,29 +623,38 @@ class OfficialDataDownloader:
             return False
 
         # 3.5. 如果是 ZIP 檔案，解壓縮
-        csv_file = temp_file
+        csv_files = []
         if is_zip:
             logger.info("檢測到 ZIP 檔案，開始解壓縮")
-            csv_file = await self._extract_zip(temp_file)
-            if not csv_file:
+            csv_files = await self._extract_zip(temp_file)
+            if not csv_files:
                 logger.error("解壓縮失敗")
                 if temp_file.exists():
                     temp_file.unlink()
                 return False
+        else:
+            # 單一 CSV 檔案
+            csv_files = [temp_file]
 
         # 4. 備份舊資料
         self.backup_old_data()
 
-        # 5. 過濾台中市資料
-        success, row_count = self.filter_taichung_data(csv_file, OUTPUT_FILE)
+        # 5. 過濾並合併台中市資料
+        if len(csv_files) > 1:
+            logger.info(f"使用多檔案合併模式 | 檔案數={len(csv_files)}")
+            success, row_count = self.filter_and_merge_taichung_data(csv_files, OUTPUT_FILE)
+        else:
+            logger.info("使用單檔案模式")
+            success, row_count = self.filter_taichung_data(csv_files[0], OUTPUT_FILE)
 
         if not success:
             logger.error("過濾資料失敗")
             # 清理臨時檔案
             if temp_file.exists():
                 temp_file.unlink()
-            if csv_file != temp_file and csv_file.exists():
-                csv_file.unlink()
+            for csv_file in csv_files:
+                if csv_file != temp_file and csv_file.exists():
+                    csv_file.unlink()
             return False
 
         # 6. 更新版本資訊
@@ -509,24 +670,35 @@ class OfficialDataDownloader:
         # 7. 清理臨時檔案
         if temp_file.exists():
             temp_file.unlink()
-        if csv_file != temp_file and csv_file.exists():
-            csv_file.unlink()
+
+        # 清理解壓的 CSV 檔案和解壓目錄
+        for csv_file in csv_files:
+            if csv_file != temp_file and csv_file.exists():
+                csv_file.unlink()
+
+        # 清理解壓目錄
+        extract_dir = self.data_dir / "temp_extract"
+        if extract_dir.exists():
+            shutil.rmtree(extract_dir)
 
         logger.info(f"✅ 資料更新成功 | version={new_version} | rows={row_count}")
         return True
 
-    async def _extract_zip(self, zip_path: Path) -> Optional[Path]:
+    async def _extract_zip(self, zip_path: Path) -> Optional[List[Path]]:
         """
-        解壓縮 ZIP 檔案並找到 CSV 檔案。
+        解壓縮 ZIP 檔案並找到所有 CSV 檔案。
 
         Args:
             zip_path: ZIP 檔案路徑
 
         Returns:
-            CSV 檔案路徑，失敗時返回 None
+            CSV 檔案路徑列表，失敗時返回 None
         """
         try:
             extract_dir = self.data_dir / "temp_extract"
+            # 清空舊的解壓目錄
+            if extract_dir.exists():
+                shutil.rmtree(extract_dir)
             extract_dir.mkdir(exist_ok=True)
 
             logger.info(f"解壓縮 ZIP | path={zip_path}")
@@ -547,16 +719,18 @@ class OfficialDataDownloader:
                     logger.error("ZIP 中沒有找到 CSV 檔案")
                     return None
 
-                # 解壓縮第一個找到的 CSV
-                csv_file_name = csv_files[0]
-                logger.info(f"找到 CSV | name={csv_file_name}")
+                logger.info(f"找到 {len(csv_files)} 個 CSV 檔案")
 
-                zip_ref.extract(csv_file_name, extract_dir)
+                # 解壓縮所有 CSV 檔案
+                extracted_paths = []
+                for csv_file_name in csv_files:
+                    zip_ref.extract(csv_file_name, extract_dir)
+                    csv_file = extract_dir / csv_file_name
+                    extracted_paths.append(csv_file)
 
-                csv_file = extract_dir / csv_file_name
-                logger.info(f"解壓縮成功 | path={csv_file}")
+                logger.info(f"解壓縮成功 | 檔案數={len(extracted_paths)}")
 
-                return csv_file
+                return extracted_paths
 
         except zipfile.BadZipFile:
             logger.error("無效的 ZIP 檔案")

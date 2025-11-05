@@ -1,0 +1,44 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# 資料庫
+*.db
+*.sqlite
+
+# 環境變數
+.env
+.env.local
+
+# 日誌
+*.log
+
+# 測試
+test_*.py
+debug_*.py
+
+# Git
+.git/
+.gitignore
+
+# 暫存
+data/backup/
+data/*.csv
+data/*.html
+
+# 文檔
+README.md
+*.md
