@@ -1,12 +1,15 @@
 """VicBot Web API - FastAPI application."""
 import os
-from fastapi import FastAPI, Request
+from dotenv import load_dotenv
+from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
 from contextlib import asynccontextmanager
 import logging
+
+# 載入環境變數
+load_dotenv()
 
 from web_api.routers import auth, monitoring, cases, clients, viewings, price_query
 from web_api.auth.users import init_users_table
@@ -52,7 +55,8 @@ origins = [
     "http://localhost:8080",
     "http://127.0.0.1:3000",
     "http://127.0.0.1:8080",
-    # 生產環境需要加入實際的前端網址
+    "https://vicbot.honhaihelper.com",
+    "http://vicbot.honhaihelper.com",
     os.getenv("FRONTEND_URL", ""),
 ]
 
@@ -87,24 +91,22 @@ app.include_router(viewings.router, prefix="/api")
 app.include_router(price_query.router, prefix="/api")
 
 
-# 靜態檔案和模板（用於前端）
+# 靜態檔案（React build）
 try:
-    app.mount("/static", StaticFiles(directory="frontend/static"), name="static")
-    templates = Jinja2Templates(directory="frontend/templates")
-except RuntimeError:
-    logger.warning("前端檔案目錄不存在，跳過靜態檔案掛載")
-    templates = None
+    # Mount React app's built assets
+    app.mount("/assets", StaticFiles(directory="frontend-react/dist/assets"), name="assets")
+    logger.info("✅ React 靜態資源已掛載")
 
+    # 處理根路徑和所有前端路由
+    @app.get("/{full_path:path}")
+    async def serve_frontend(full_path: str):
+        if full_path.startswith("api/"):
+            raise HTTPException(status_code=404, detail="Not Found")
+        return FileResponse("frontend-react/dist/index.html")
 
-@app.get("/", tags=["首頁"])
-async def root():
-    """API 根路徑"""
-    return {
-        "message": "歡迎使用 VicBot Web API",
-        "version": "1.0.0",
-        "docs": "/api/docs",
-        "api_prefix": "/api"
-    }
+    logger.info("✅ 前端路由處理已設置")
+except RuntimeError as e:
+    logger.warning(f"⚠️ 靜態資源掛載失敗: {str(e)}")
 
 
 @app.get("/health", tags=["健康檢查"])
@@ -114,6 +116,25 @@ async def health_check():
         "status": "healthy",
         "service": "VicBot Web API",
         "version": "1.0.0"
+    }
+
+
+# Catch-all route to serve React app (must be last)
+@app.get("/{full_path:path}", tags=["前端"])
+async def serve_react_app(full_path: str):
+    """服務 React 單頁應用程式"""
+    # Serve index.html for all non-API routes
+    if not full_path.startswith("api/"):
+        index_path = os.path.join("frontend-react", "dist", "index.html")
+        if os.path.exists(index_path):
+            return FileResponse(index_path)
+
+    # If React build doesn't exist, return a helpful message
+    return {
+        "message": "VicBot Web API",
+        "version": "1.0.0",
+        "docs": "/api/docs",
+        "note": "React 前端尚未建置，請執行: cd frontend-react && npm run build"
     }
 
 
